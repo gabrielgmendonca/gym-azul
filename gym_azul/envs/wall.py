@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2020 Gabriel Mendonça
 
+import numpy as np
+
+
 class Wall:
     FLOOR_LIMIT = 7
 
@@ -43,11 +46,34 @@ class Wall:
         return self.state[row_idx, column_idx]
 
     def build_tile(self, color_idx, row_idx):
-        # TODO: Implement scoring
         column_idx = (row_idx + color_idx) % self.num_colors
         self.state[row_idx, column_idx] = 1
         self.pattern_line_state[0, row_idx] = 0
-        return 5
+        return self.compute_build_reward(row_idx, column_idx)
+
+    def compute_build_reward(self, row_idx, column_idx):
+        reward = 0
+        row_adj = self._count_adjacent(self.state[row_idx], column_idx)
+        col_adj = self._count_adjacent(self.state[:, column_idx], row_idx)
+
+        if col_adj == 1:
+            reward = row_adj
+        elif row_adj == 1:
+            reward = col_adj
+        else:
+            reward = row_adj + col_adj
+
+        if row_adj == self.num_colors:  # Full row
+            reward += 2
+        if col_adj == self.num_colors:  # Full column
+            reward += 7
+
+        color_idx = (column_idx - row_idx) % self.num_colors
+        num_same_color = np.sum(
+            [self.is_complete(color_idx, i) for i in range(self.num_colors)])
+        if num_same_color == 5:
+            reward += 10
+        return reward
 
     def break_tiles(self, num_tiles):
         # TODO: Add correct penalty for breaking
@@ -65,3 +91,11 @@ class Wall:
         observation = np.concatenate((np.ndarray.flatten(self.state),
             np.ndarray.flatten(self.pattern_line_state), [self.floor_state]))
         return observation
+
+    def _count_adjacent(self, line, idx):
+        change_points = np.where(np.diff(line) != 0)[0] + 1
+        tile_sequences = np.split(np.arange(len(line)), change_points)
+        for seq in tile_sequences:
+            if idx in seq:
+                return len(seq)
+        raise ValueError

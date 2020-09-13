@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2020 Gabriel Mendonça
 
+import numpy as np
+
+
 class Factories:
     TABLE_SIZE = 20
 

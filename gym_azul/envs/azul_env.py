@@ -5,9 +5,10 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
+import numpy as np
 
-from factories import Factories
-from wall import wall
+from envs.factories import Factories
+from envs.wall import Wall
 
 
 class AzulEnv(gym.Env):
@@ -15,6 +16,7 @@ class AzulEnv(gym.Env):
     NUM_COLORS = 5
     NUM_FACTORIES = 5
     FACTORY_SIZE = 4
+    EMPTY_PICK_REWARD = -1
 
     def __init__(self):
         super(AzulEnv, self).__init__()
@@ -40,7 +42,7 @@ class AzulEnv(gym.Env):
             reward += self.wall.add_tiles(action[1], action[2], num_tiles)
             self.adversary_play()
         else:
-            reward -= 0.1
+            reward += EMPTY_PICK_REWARD
             info = {'info': 'empty pick'}
 
         observation = np.concatenate((self.factories.get_observation(),
@@ -61,7 +63,8 @@ class AzulEnv(gym.Env):
         print()
         print('-' * 15)
         print('Factories:')
-        print(self.factories.get_observation()[:-1].reshape((3, 5)))
+        print(self.factories.get_observation()[:-1].reshape(
+            (self.NUM_FACTORIES + 1, self.NUM_COLORS)))
         print()
         print('Wall:')
         for i in range(self.NUM_COLORS):
@@ -77,6 +80,7 @@ class AzulEnv(gym.Env):
         return [seed]
 
     def adversary_play(self):
+        # TODO: Use trained model as adversary
         num_tiles = 0
         while num_tiles == 0:
             factory_idx = np.random.randint(self.NUM_FACTORIES + 1)
