@@ -27,19 +27,22 @@ class Factories:
             assert(np.sum(self.state[i]) == self.size)
 
     def pick_tiles(self, factory_idx, color_idx):
-        # TODO: first_player token
-        round_end = False
         num_tiles = self.state[factory_idx, color_idx]
+        round_end = False
+        first_player_token = False
         if num_tiles > 0:
             self.state[factory_idx, color_idx] = 0
             if factory_idx != 0:
                 self.state[0] += self.state[factory_idx]  # move to table
                 self.state[factory_idx] = 0
+            else:
+                first_player_token = self.first_player_table
+                self.first_player_table = False
 
         if np.sum(self.state) == 0:
             round_end = True
         
-        return num_tiles, round_end
+        return num_tiles, round_end, first_player_token
 
     def get_observation(self):
         observation = np.ndarray.flatten(self.state)

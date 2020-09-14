@@ -114,16 +114,54 @@ class TestWall(unittest.TestCase):
         self.assertEqual(wall.break_tiles(5), -8)
         self.assertEqual(wall.break_tiles(5), -6)
 
+    def test_add_tiles_first_player_token(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+
+        first_player_token = False
+        reward = wall.add_tiles(0, 0, 1, first_player_token)
+        self.assertEqual(reward, 1)
+
+        first_player_token = True
+        reward = wall.add_tiles(2, 0, 1, first_player_token)
+        self.assertEqual(reward, 0)
+
+        first_player_token = True
+        reward = wall.add_tiles(2, 0, 1, first_player_token)
+        self.assertEqual(reward, -3)
+
+
+class TestFactories(unittest.TestCase):
+    def _pick_first(self, factories):
+        factory_idx, color_idx = np.unravel_index(
+            (factories.state > 0).argmax(), factories.state.shape)
+        return factories.pick_tiles(factory_idx, color_idx)
+
     def test_round_end(self):
         factories = Factories(AzulEnv.NUM_COLORS, AzulEnv.FACTORY_SIZE,
             AzulEnv.NUM_FACTORIES)
         while factories.state.sum() > 0:
-            factory_idx, color_idx = \
-                np.unravel_index((factories.state > 0).argmax(),
-                                 factories.state.shape)
-            num_tiles, round_end = factories.pick_tiles(factory_idx, color_idx)
+            num_tiles, round_end, _ = self._pick_first(factories)
             self.assertGreater(num_tiles, 0)
         self.assertTrue(round_end)
+
+    def test_pick_tiles_first_player(self):
+        factories = Factories(AzulEnv.NUM_COLORS, AzulEnv.FACTORY_SIZE,
+            AzulEnv.NUM_FACTORIES)
+
+        num_tiles, round_end, first_player_token = self._pick_first(factories)
+        self.assertGreater(num_tiles, 0)
+        self.assertFalse(round_end)
+        self.assertFalse(first_player_token)
+
+        num_tiles, round_end, first_player_token = self._pick_first(factories)
+        self.assertGreater(num_tiles, 0)
+        self.assertFalse(round_end)
+        self.assertTrue(first_player_token)
+
+        num_tiles, round_end, first_player_token = self._pick_first(factories)
+        self.assertGreater(num_tiles, 0)
+        self.assertFalse(round_end)
+        self.assertFalse(first_player_token)
 
 
 if __name__ == '__main__':

@@ -36,9 +36,13 @@ class AzulEnv(gym.Env):
         assert self.action_space.contains(action)
         reward = 0
         info = {}
-        num_tiles, round_end = self.factories.pick_tiles(action[0], action[1])
+
+        num_tiles, round_end, first_player_token = \
+            self.factories.pick_tiles(action[0], action[1])
+
         if num_tiles > 0:
-            reward += self.wall.add_tiles(action[1], action[2], num_tiles)
+            reward += self.wall.add_tiles(
+                action[1], action[2], num_tiles, first_player_token)
             if round_end:
                 self.end_round()
             round_end = self.adversary_play()
@@ -89,9 +93,10 @@ class AzulEnv(gym.Env):
         while num_tiles == 0:
             factory_idx = np.random.randint(self.NUM_FACTORIES + 1)
             color_idx = np.random.randint(self.NUM_COLORS)
-            num_tiles, round_end = self.factories.pick_tiles(factory_idx,
-                                                             color_idx)
-        self.adversary_wall.add_tiles(factory_idx, color_idx, num_tiles)
+            num_tiles, round_end, first_player_token = \
+                self.factories.pick_tiles(factory_idx, color_idx)
+        self.adversary_wall.add_tiles(
+            factory_idx, color_idx, num_tiles, first_player_token)
         return round_end
 
     def end_round(self):

@@ -21,14 +21,17 @@ class Wall:
         self.pattern_line_state = np.zeros([2, self.num_colors], dtype=np.uint8)
         self.floor_state = 0
         
-    def add_tiles(self, color_idx, row_idx, num_tiles):
+    def add_tiles(self, color_idx, row_idx, num_tiles, first_player_token):
         assert(num_tiles > 0)
         reward = 0
+
         if self.is_complete(color_idx, row_idx):  # already on the wall
             reward += self.break_tiles(num_tiles)
+
         elif (self.pattern_line_state[0, row_idx] > 0 and
               self.pattern_line_state[1, row_idx] != color_idx):  # pattern line in use
             reward += self.break_tiles(num_tiles)
+
         else:  # empty or correct pattern line
             self.pattern_line_state[1, row_idx] = color_idx
             available_space = row_idx + 1 - self.pattern_line_state[0, row_idx]
@@ -39,6 +42,10 @@ class Wall:
                     reward += self.break_tiles(excess)
             else:
                 self.pattern_line_state[0, row_idx] += num_tiles
+
+        if first_player_token:
+            reward += self.break_tiles(1)
+
         return reward
 
     def is_complete(self, color_idx, row_idx):
