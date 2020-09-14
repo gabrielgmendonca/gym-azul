@@ -28,6 +28,7 @@ class Factories:
 
     def pick_tiles(self, factory_idx, color_idx):
         # TODO: first_player token
+        round_end = False
         num_tiles = self.state[factory_idx, color_idx]
         if num_tiles > 0:
             self.state[factory_idx, color_idx] = 0
@@ -35,10 +36,10 @@ class Factories:
                 self.state[0] += self.state[factory_idx]  # move to table
                 self.state[factory_idx] = 0
 
-        if np.sum(self.state) == 0:  # round end
-            self.reset()
+        if np.sum(self.state) == 0:
+            round_end = True
         
-        return num_tiles
+        return num_tiles, round_end
 
     def get_observation(self):
         observation = np.ndarray.flatten(self.state)

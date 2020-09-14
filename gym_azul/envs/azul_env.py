@@ -26,6 +26,7 @@ class AzulEnv(gym.Env):
         self.factories = Factories(self.NUM_COLORS, self.FACTORY_SIZE,
                                    self.NUM_FACTORIES)
         self.wall = Wall(self.NUM_COLORS)
+        self.adversary_wall = Wall(self.NUM_COLORS)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
         self.seed()
@@ -33,26 +34,29 @@ class AzulEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
-#         print('F {} | C {} | R {}'.format(*action))
-
         reward = 0
         info = {}
-        num_tiles = self.factories.pick_tiles(action[0], action[1])
+        num_tiles, round_end = self.factories.pick_tiles(action[0], action[1])
         if num_tiles > 0:
             reward += self.wall.add_tiles(action[1], action[2], num_tiles)
-            self.adversary_play()
+            if round_end:
+                self.end_round()
+            round_end = self.adversary_play()
+            if round_end:
+                self.end_round()
         else:
             reward += EMPTY_PICK_REWARD
             info = {'info': 'empty pick'}
 
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
-        done = self.wall.done()
+        done = self.wall.done() or self.adversary_wall.done()
         return observation, reward, done, info
 
     def reset(self):
         self.factories.reset()
         self.wall.reset()
+        self.adversary_wall.reset()
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
         return observation
@@ -85,5 +89,12 @@ class AzulEnv(gym.Env):
         while num_tiles == 0:
             factory_idx = np.random.randint(self.NUM_FACTORIES + 1)
             color_idx = np.random.randint(self.NUM_COLORS)
-            num_tiles = self.factories.pick_tiles(factory_idx, color_idx)
-#         print('ADV: F {} | C {}'.format(factory_idx, color_idx))
+            num_tiles, round_end = self.factories.pick_tiles(factory_idx,
+                                                             color_idx)
+        self.adversary_wall.add_tiles(factory_idx, color_idx, num_tiles)
+        return round_end
+
+    def end_round(self):
+        self.factories.reset()
+        self.wall.floor_state = 0
+        self.adversary_wall.floor_state = 0

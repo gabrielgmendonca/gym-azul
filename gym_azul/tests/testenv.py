@@ -71,7 +71,7 @@ class TestWall(unittest.TestCase):
             for j in range(AzulEnv.NUM_COLORS):
                 self.assertEqual(wall.compute_build_reward(j, i), 12)
 
-    def test_full_column_tile_reward(self):
+    def test_full_color_tile_reward(self):
         wall = Wall(AzulEnv.NUM_COLORS)
         for color_idx in range(AzulEnv.NUM_COLORS):
             wall.reset()
@@ -80,6 +80,50 @@ class TestWall(unittest.TestCase):
             wall.state[row_idx, column_idx] = True
             for i, j in zip(row_idx, column_idx):
                 self.assertEqual(wall.compute_build_reward(i, j), 11)
+
+    def test_break_one_tile(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+        self.assertEqual(wall.break_tiles(1), -1)
+        self.assertEqual(wall.break_tiles(1), -1)
+        self.assertEqual(wall.break_tiles(1), -2)
+        self.assertEqual(wall.break_tiles(1), -2)
+        self.assertEqual(wall.break_tiles(1), -2)
+        self.assertEqual(wall.break_tiles(1), -3)
+        self.assertEqual(wall.break_tiles(1), -3)
+
+    def test_break_two_tiles(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+        self.assertEqual(wall.break_tiles(2), -2)
+        self.assertEqual(wall.break_tiles(2), -4)
+        self.assertEqual(wall.break_tiles(2), -5)
+        self.assertEqual(wall.break_tiles(2), -3)
+
+    def test_break_three_tiles(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+        self.assertEqual(wall.break_tiles(3), -4)
+        self.assertEqual(wall.break_tiles(3), -7)
+        self.assertEqual(wall.break_tiles(3), -3)
+
+    def test_break_four_tiles(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+        self.assertEqual(wall.break_tiles(4), -6)
+        self.assertEqual(wall.break_tiles(4), -8)
+
+    def test_break_five_tiles(self):
+        wall = Wall(AzulEnv.NUM_COLORS)
+        self.assertEqual(wall.break_tiles(5), -8)
+        self.assertEqual(wall.break_tiles(5), -6)
+
+    def test_round_end(self):
+        factories = Factories(AzulEnv.NUM_COLORS, AzulEnv.FACTORY_SIZE,
+            AzulEnv.NUM_FACTORIES)
+        while factories.state.sum() > 0:
+            factory_idx, color_idx = \
+                np.unravel_index((factories.state > 0).argmax(),
+                                 factories.state.shape)
+            num_tiles, round_end = factories.pick_tiles(factory_idx, color_idx)
+            self.assertGreater(num_tiles, 0)
+        self.assertTrue(round_end)
 
 
 if __name__ == '__main__':

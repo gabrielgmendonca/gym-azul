@@ -6,7 +6,7 @@ import numpy as np
 
 
 class Wall:
-    FLOOR_LIMIT = 7
+    FLOOR_PENALTY = np.array([-1] * 2 + [-2] * 3 + [-3] * 2)
 
     def __init__(self, num_colors):
         self.num_colors = num_colors
@@ -14,7 +14,7 @@ class Wall:
         self.state_space = ([2] * self.num_colors * self.num_colors +  # wall
                             list(range(2, self.num_colors + 2)) +      # pattern lines num
                             [self.num_colors] * self.num_colors +      # pattern lines color
-                            [self.FLOOR_LIMIT + 1])                    # floor
+                            [len(self.FLOOR_PENALTY) + 1])             # floor
 
     def reset(self):
         self.state = np.zeros([self.num_colors, self.num_colors], dtype=bool)
@@ -76,13 +76,10 @@ class Wall:
         return reward
 
     def break_tiles(self, num_tiles):
-        # TODO: Add correct penalty for breaking
-#         previous = self.floor_state
-#         self.floor_state = min(self.floor_state + num_tiles, self.FLOOR_LIMIT)
-#         num_broken = self.floor_state - previous
-#         reward = -1 * num_broken
-        reward = -1 * num_tiles
-        return reward
+        previous = self.floor_state
+        self.floor_state = min(self.floor_state + num_tiles,
+                               len(self.FLOOR_PENALTY))
+        return self.FLOOR_PENALTY[previous:self.floor_state].sum()
 
     def done(self):
         return bool(self.state.all(axis=1).any())
