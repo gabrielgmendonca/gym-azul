@@ -7,9 +7,8 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
 
-from envs.factories import Factories
-from envs.wall import Wall
-
+from .factories import Factories
+from .wall import Wall
 
 class AzulEnv(gym.Env):
     metadata = {'render.modes': ['console', 'human']}
@@ -49,7 +48,7 @@ class AzulEnv(gym.Env):
             if round_end:
                 self.end_round()
         else:
-            reward += EMPTY_PICK_REWARD
+            reward += self.EMPTY_PICK_REWARD
             info = {'info': 'empty pick'}
 
         observation = np.concatenate((self.factories.get_observation(),
