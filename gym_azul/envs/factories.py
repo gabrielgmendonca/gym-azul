@@ -8,10 +8,11 @@ import numpy as np
 class Factories:
     TABLE_SIZE = 20
 
-    def __init__(self, num_colors, size, num_factories):
+    def __init__(self, num_colors, size, num_factories, np_random):
         self.num_colors = num_colors
         self.size = size
         self.num_factories = num_factories
+        self.np_random = np_random
         self.state = np.zeros([self.num_factories + 1, self.num_colors],
                                dtype=np.uint8)
         self.state_space = [self.TABLE_SIZE + 1] * self.num_colors + \
@@ -22,7 +23,7 @@ class Factories:
         self.state[0] = 0
         self.first_player_table = True
         for i in range(1, self.num_factories + 1):
-            tiles = np.random.randint(self.num_colors, size=self.size)
+            tiles = self.np_random.randint(self.num_colors, size=self.size)
             self.state[i] = np.bincount(tiles, minlength=self.num_colors)
             assert(np.sum(self.state[i]) == self.size)
 

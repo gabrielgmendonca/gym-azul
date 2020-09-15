@@ -19,16 +19,16 @@ class AzulEnv(gym.Env):
 
     def __init__(self):
         super(AzulEnv, self).__init__()
+        self.seed()
         self.action_space = spaces.MultiDiscrete([self.NUM_FACTORIES + 1,
                                                   self.NUM_COLORS,
                                                   self.NUM_COLORS])
         self.factories = Factories(self.NUM_COLORS, self.FACTORY_SIZE,
-                                   self.NUM_FACTORIES)
+                                   self.NUM_FACTORIES, self.np_random)
         self.wall = Wall(self.NUM_COLORS)
         self.adversary_wall = Wall(self.NUM_COLORS)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
-        self.seed()
         self.reset()
 
     def step(self, action):
@@ -90,8 +90,8 @@ class AzulEnv(gym.Env):
         # TODO: Use trained model as adversary
         num_tiles = 0
         while num_tiles == 0:
-            factory_idx = np.random.randint(self.NUM_FACTORIES + 1)
-            color_idx = np.random.randint(self.NUM_COLORS)
+            factory_idx = self.np_random.randint(self.NUM_FACTORIES + 1)
+            color_idx = self.np_random.randint(self.NUM_COLORS)
             num_tiles, round_end, first_player_token = \
                 self.factories.pick_tiles(factory_idx, color_idx)
         self.adversary_wall.add_tiles(

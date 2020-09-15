@@ -138,7 +138,7 @@ class TestFactories(unittest.TestCase):
 
     def test_round_end(self):
         factories = Factories(AzulEnv.NUM_COLORS, AzulEnv.FACTORY_SIZE,
-            AzulEnv.NUM_FACTORIES)
+            AzulEnv.NUM_FACTORIES, np.random.RandomState())
         while factories.state.sum() > 0:
             num_tiles, round_end, _ = self._pick_first(factories)
             self.assertGreater(num_tiles, 0)
@@ -146,7 +146,7 @@ class TestFactories(unittest.TestCase):
 
     def test_pick_tiles_first_player(self):
         factories = Factories(AzulEnv.NUM_COLORS, AzulEnv.FACTORY_SIZE,
-            AzulEnv.NUM_FACTORIES)
+            AzulEnv.NUM_FACTORIES, np.random.RandomState())
 
         num_tiles, round_end, first_player_token = self._pick_first(factories)
         self.assertGreater(num_tiles, 0)
