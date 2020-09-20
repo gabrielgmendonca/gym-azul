@@ -6,9 +6,9 @@ import unittest
 
 import numpy as np
 
-from envs.azul_env import AzulEnv
-from envs.factories import Factories
-from envs.wall import Wall
+from gym_azul.envs.azul_env import AzulEnv
+from gym_azul.envs.factories import Factories
+from gym_azul.envs.wall import Wall
 
 
 class TestWall(unittest.TestCase):

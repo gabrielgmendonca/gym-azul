@@ -15,7 +15,8 @@ class AzulEnv(gym.Env):
     NUM_COLORS = 5
     NUM_FACTORIES = 5
     FACTORY_SIZE = 4
-    EMPTY_PICK_REWARD = -1
+    EMPTY_PICK_REWARD = -10
+    MAX_ACTIONS = NUM_COLORS * sum(range(1, NUM_COLORS + 1))
 
     def __init__(self):
         super(AzulEnv, self).__init__()
@@ -33,6 +34,7 @@ class AzulEnv(gym.Env):
 
     def step(self, action):
         assert self.action_space.contains(action)
+        self.num_actions += 1
         reward = 0
         info = {}
 
@@ -53,10 +55,12 @@ class AzulEnv(gym.Env):
 
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
-        done = self.wall.done() or self.adversary_wall.done()
+        done = (self.wall.done() or self.adversary_wall.done() or
+                self.num_actions >= self.MAX_ACTIONS)
         return observation, reward, done, info
 
     def reset(self):
+        self.num_actions = 0
         self.factories.reset()
         self.wall.reset()
         self.adversary_wall.reset()
@@ -65,8 +69,6 @@ class AzulEnv(gym.Env):
         return observation
 
     def render(self, mode='console'):
-        if mode != 'console':
-            raise NotImplementedError()
         print()
         print('-' * 15)
         print('Factories:')
