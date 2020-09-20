@@ -7,8 +7,10 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
 
+from .board import Board
 from .factories import Factories
 from .wall import Wall
+
 
 class AzulEnv(gym.Env):
     metadata = {'render.modes': ['console', 'human']}
@@ -30,6 +32,7 @@ class AzulEnv(gym.Env):
         self.adversary_wall = Wall(self.NUM_COLORS)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
+        self.board = Board(255, 255, self.NUM_COLORS)
         self.reset()
 
     def step(self, action):
@@ -64,25 +67,38 @@ class AzulEnv(gym.Env):
         self.factories.reset()
         self.wall.reset()
         self.adversary_wall.reset()
+        self.board.reset()
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
         return observation
 
-    def render(self, mode='console'):
-        print()
-        print('-' * 15)
-        print('Factories:')
-        print(self.factories.get_observation()[:-1].reshape(
-            (self.NUM_FACTORIES + 1, self.NUM_COLORS)))
-        print()
-        print('Wall:')
-        for i in range(self.NUM_COLORS):
-            print(str(self.wall.pattern_line_state[0, i]),
-                  str(self.wall.state[i].astype(int)))
-        print()
+    def render(self, mode='console', close=False):
+        if close:
+            self.board.close()
+            return
+
+        if mode == 'console':
+            print()
+            print('-' * 15)
+            print('Factories:')
+            print(self.factories.get_observation()[:-1].reshape(
+                (self.NUM_FACTORIES + 1, self.NUM_COLORS)))
+            print()
+            print('Wall:')
+            for i in range(self.NUM_COLORS):
+                print(str(self.wall.pattern_line_state[0, i]),
+                      str(self.wall.state[i].astype(int)))
+            print()
+            return
+
+        img = self.board.render(self.factories, self.wall)
+        if mode == 'human':
+            self.board.show()
+
+        return img
 
     def close(self):
-        pass
+        self.board.close()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
