@@ -7,6 +7,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
 
+from .adversary import RandomAdversary
 from .board import Board
 from .factories import Factories
 from .wall import Wall
@@ -29,7 +30,7 @@ class AzulEnv(gym.Env):
         self.factories = Factories(self.NUM_COLORS, self.FACTORY_SIZE,
                                    self.NUM_FACTORIES, self.np_random)
         self.wall = Wall(self.NUM_COLORS)
-        self.adversary_wall = Wall(self.NUM_COLORS)
+        self.adversary = RandomAdversary(self.factories, self.np_random)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
         self.board = Board(1024, 1024, self.NUM_COLORS)
@@ -49,7 +50,7 @@ class AzulEnv(gym.Env):
                 action[1], action[2], num_tiles, first_player_token)
             if round_end:
                 self.end_round()
-            round_end = self.adversary_play()
+            round_end = self.adversary.play()
             if round_end:
                 self.end_round()
         else:
@@ -58,7 +59,7 @@ class AzulEnv(gym.Env):
 
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
-        done = (self.wall.done() or self.adversary_wall.done() or
+        done = (self.wall.done() or self.adversary.done() or
                 self.num_actions >= self.MAX_ACTIONS)
         return observation, reward, done, info
 
@@ -66,7 +67,7 @@ class AzulEnv(gym.Env):
         self.num_actions = 0
         self.factories.reset()
         self.wall.reset()
-        self.adversary_wall.reset()
+        self.adversary.reset()
         self.board.reset()
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
@@ -104,19 +105,7 @@ class AzulEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def adversary_play(self):
-        # TODO: Use trained model as adversary
-        num_tiles = 0
-        while num_tiles == 0:
-            factory_idx = self.np_random.randint(self.NUM_FACTORIES + 1)
-            color_idx = self.np_random.randint(self.NUM_COLORS)
-            num_tiles, round_end, first_player_token = \
-                self.factories.pick_tiles(factory_idx, color_idx)
-        self.adversary_wall.add_tiles(
-            factory_idx, color_idx, num_tiles, first_player_token)
-        return round_end
-
     def end_round(self):
         self.factories.reset()
         self.wall.floor_state = 0
-        self.adversary_wall.floor_state = 0
+        self.adversary.end_round()
