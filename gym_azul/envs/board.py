@@ -17,11 +17,13 @@ class Board:
         self.height = height
         self.width = width
         self.num_colors = num_colors
+        self.factory_tile_size = round(self.height / 20)
         self.figure = plt.figure(figsize=(5, 5))
         cid = self.figure.canvas.mpl_connect('button_press_event', self.onclick)
 
     def render(self, factories, wall):
         self.img = np.ones((self.height, self.width, 4)).astype(int) * 255
+        self._render_factories(factories)
         self._render_wall(wall)
         self._render_pattern_line(wall)
         return self.img
@@ -32,7 +34,7 @@ class Board:
         plt.xticks([])
         plt.yticks([])
         plt.ion()
-        plt.pause(1)
+        plt.pause(2)
 
     def close(self):
         plt.close()
@@ -44,6 +46,50 @@ class Board:
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
                   ('double' if event.dblclick else 'single', event.button,
                    event.x, event.y, event.xdata, event.ydata))
+
+    def _render_factories(self, factories):
+        center_x = round(self.height / 4)
+        center_y = round(self.width / 4)
+        radius = round(self.width / 8)
+        for i in range(1, len(factories.state)):
+            factory_state = factories.state[i]
+            angle = 2 * np.pi / factories.num_factories * (i - 1)
+            factory_center_x = round(np.sin(angle) * radius).astype(int)
+            factory_center_x += center_x
+            factory_center_y = round(np.cos(angle) * radius).astype(int)
+            factory_center_y += center_y
+            self._render_factory(factory_center_x, factory_center_y,
+                factory_state)
+
+        factory_state = factories.state[0]
+        factory_center_y = round(self.width / 4) * 3
+        self._render_factory(center_x, factory_center_y, factory_state, 4)
+
+    def _render_factory(self, center_x, center_y, state, factory_dim=2):
+        factory_size = self.factory_tile_size * factory_dim
+        x_start = center_x - round(factory_size / 2)
+        x_end = x_start + factory_size
+        y_start = center_y - round(factory_size / 2)
+        y_end = y_start + factory_size
+        canvas = self.img[x_start:x_end, y_start:y_end]
+
+        num_tiles = np.sum(state)
+        tile_idx = 0
+        for color_idx in range(self.num_colors):
+            color = self.COLOR_MAP[color_idx].copy()
+            color[3] = 255
+            for i in range(state[color_idx]):
+                tile_xs = (tile_idx // factory_dim) * self.factory_tile_size
+                tile_ys = (tile_idx % factory_dim) * self.factory_tile_size
+                tile_xe = tile_xs + self.factory_tile_size
+                tile_ye = tile_ys + self.factory_tile_size
+                self._fill(canvas, tile_xs, tile_ys, tile_xe, tile_ye, color)
+                tile_idx += 1
+
+        for i in range(factory_dim + 1):
+            pos = min(i * self.factory_tile_size, factory_size - 1)
+            self._draw_vline(canvas, pos)
+            self._draw_hline(canvas, pos)
 
     def _render_wall(self, wall):
         x_start = round(self.width / 2)

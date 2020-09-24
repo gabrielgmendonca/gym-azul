@@ -32,7 +32,7 @@ class AzulEnv(gym.Env):
         self.adversary_wall = Wall(self.NUM_COLORS)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
-        self.board = Board(512, 512, self.NUM_COLORS)
+        self.board = Board(1024, 1024, self.NUM_COLORS)
         self.reset()
 
     def step(self, action):
