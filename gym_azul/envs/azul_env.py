@@ -7,7 +7,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import numpy as np
 
-from .adversary import RandomAdversary
+from .adversary import RandomAdversary, PPO2Adversary
 from .board import Board
 from .factories import Factories
 from .wall import Wall
@@ -21,8 +21,8 @@ class AzulEnv(gym.Env):
     EMPTY_PICK_REWARD = -10
     MAX_ACTIONS = NUM_COLORS * sum(range(1, NUM_COLORS + 1))
 
-    def __init__(self):
-        super(AzulEnv, self).__init__()
+    def __init__(self, adv_model_path=None):
+        super().__init__()
         self.seed()
         self.action_space = spaces.MultiDiscrete([self.NUM_FACTORIES + 1,
                                                   self.NUM_COLORS,
@@ -30,10 +30,16 @@ class AzulEnv(gym.Env):
         self.factories = Factories(self.NUM_COLORS, self.FACTORY_SIZE,
                                    self.NUM_FACTORIES, self.np_random)
         self.wall = Wall(self.NUM_COLORS)
-        self.adversary = RandomAdversary(self.factories, self.np_random)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
         self.board = Board(1024, 1024, self.NUM_COLORS)
+
+        if adv_model_path:
+            self.adversary = PPO2Adversary(self.factories, self.np_random,
+                                           adv_model_path)
+        else:
+            self.adversary = RandomAdversary(self.factories, self.np_random)
+
         self.reset()
 
     def step(self, action):
