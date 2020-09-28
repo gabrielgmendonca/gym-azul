@@ -21,7 +21,7 @@ class AzulEnv(gym.Env):
     EMPTY_PICK_REWARD = -10
     MAX_ACTIONS = NUM_COLORS * sum(range(1, NUM_COLORS + 1))
 
-    def __init__(self, adv_model_path=None):
+    def __init__(self, adv_model_path=None, reward_type='score'):
         super().__init__()
         self.seed()
         self.action_space = spaces.MultiDiscrete([self.NUM_FACTORIES + 1,
@@ -32,14 +32,14 @@ class AzulEnv(gym.Env):
         self.wall = Wall(self.NUM_COLORS)
         self.observation_space = spaces.MultiDiscrete(
             self.factories.state_space + self.wall.state_space)
-        self.board = Board(1024, 1024, self.NUM_COLORS)
+        self.board = None
 
         if adv_model_path:
             self.adversary = PPO2Adversary(self.factories, self.np_random,
                                            adv_model_path)
         else:
             self.adversary = RandomAdversary(self.factories, self.np_random)
-
+        self.reward_type = reward_type
         self.reset()
 
     def step(self, action):
@@ -52,36 +52,53 @@ class AzulEnv(gym.Env):
             self.factories.pick_tiles(action[0], action[1])
 
         if num_tiles > 0:
-            reward += self.wall.add_tiles(
+            action_score = self.wall.add_tiles(
                 action[1], action[2], num_tiles, first_player_token)
+            self.score += action_score
+
+            if self.reward_type == 'score':
+                reward = action_score
+
             if round_end:
                 self.end_round()
             round_end = self.adversary.play()
             if round_end:
                 self.end_round()
+
         else:
-            reward += self.EMPTY_PICK_REWARD
-            info = {'info': 'empty pick'}
+            info['info'] = 'empty pick'
+            if self.reward_type == 'score':
+                reward = self.EMPTY_PICK_REWARD
 
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
         done = (self.wall.done() or self.adversary.done() or
                 self.num_actions >= self.MAX_ACTIONS)
+
+        if done and self.reward_type == 'win':
+            if (self.score <= self.adversary.score or
+                self.num_actions >= self.MAX_ACTIONS):
+                reward = -1
+            else:
+                reward = 1
         return observation, reward, done, info
 
     def reset(self):
         self.num_actions = 0
+        self.score = 0
         self.factories.reset()
         self.wall.reset()
         self.adversary.reset()
-        self.board.reset()
+        if self.board:
+            self.board.reset()
         observation = np.concatenate((self.factories.get_observation(),
                                       self.wall.get_observation()))
         return observation
 
     def render(self, mode='console', close=False):
         if close:
-            self.board.close()
+            if self.board:
+                self.board.close()
             return
 
         if mode == 'console':
@@ -98,6 +115,9 @@ class AzulEnv(gym.Env):
             print()
             return
 
+        if not self.board:
+            self.board = Board(1024, 1024, self.NUM_COLORS)
+
         img = self.board.render(self.factories, self.wall)
         if mode == 'human':
             self.board.show()
@@ -105,7 +125,8 @@ class AzulEnv(gym.Env):
         return img
 
     def close(self):
-        self.board.close()
+        if self.board:
+            self.board.close()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
